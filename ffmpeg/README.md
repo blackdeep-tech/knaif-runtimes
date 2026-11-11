@@ -32,6 +32,24 @@ the line. The pack lands in `<out-dir>` with `BUILD.txt` (every pinned version) 
 The tooling's checkout and download cache live in `$KNAIF_RUNTIMES_WORK` (default
 `~/.cache/knaif-runtimes`), never in the repository.
 
+### macOS
+
+```bash
+bash ffmpeg/build-macos.sh --pins               # anywhere: what would be built, from which commits
+bash ffmpeg/build-macos.sh <line> <out-dir>     # on the Mac (the Mac's own architecture)
+```
+
+BtbN's tooling has no macOS target, so `build-macos.sh` builds the same libraries natively with
+the Mac's clang. It reads each library's repository and commit from the same BtbN stage scripts,
+at the same BtbN commit, so the three platforms compile the same sources. It uses the same ffmpeg
+configuration and needs no docker. libiconv is the one difference: macOS ships it as a system
+library, and ffmpeg uses that copy. The build tools come from Homebrew (the list is in the
+script's header) and only run at build time. The script refuses a binary that links anything but
+the system's own libraries. The minimum macOS is 12 (`MACOSX_DEPLOYMENT_TARGET`). It writes the
+source set beside the pack (`<out-dir>-sources/`), since the Mac has no download cache for
+`sources.sh` to read. If x265's or libvpx's assembly does not build on a given Mac,
+`X265_CMAKE_EXTRA=-DENABLE_ASSEMBLY=OFF` and `LIBVPX_TARGET=<target>` are the escape hatches.
+
 ## Sources
 
 ```bash
