@@ -63,7 +63,8 @@ cd "$WORK"
 # Keep the docker builder between builds: removing it after each image (the tooling's default)
 # made every line rebuild the cross toolchain (25 min each, 2026-11-11).
 NOCLEAN=1 ./makeimage.sh "$TARGET" "$VARIANT" "$LINE"
-FFMPEG_REPO_OVERRIDE="$FFMPEG_REPO" GIT_BRANCH_OVERRIDE="$FFMPEG_TAG" FFBUILD_OUTPUT_DIR="$OUT" \n    ./build.sh "$TARGET" "$VARIANT" "$LINE"
+FFMPEG_REPO_OVERRIDE="$FFMPEG_REPO" GIT_BRANCH_OVERRIDE="$FFMPEG_TAG" FFBUILD_OUTPUT_DIR="$OUT" \
+    ./build.sh "$TARGET" "$VARIANT" "$LINE"
 
 {
     echo "media pack build"
