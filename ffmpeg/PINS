@@ -1,0 +1,10 @@
+# What a media pack build is made from. Every library's own source commit is pinned inside the
+# build tooling at BTBN_COMMIT (each `scripts.d/*.sh` names its SCRIPT_COMMIT); ffmpeg itself is
+# pinned to a release tag per line here, never a branch head.
+BTBN_REPO=https://github.com/BtbN/FFmpeg-Builds.git
+BTBN_COMMIT=c9fe5114060e507409f7ee07edfd82efaf25d767
+# ffmpeg's repository (the tooling's own default), and line -> release tag
+FFMPEG_REPO=https://github.com/FFmpeg/FFmpeg.git
+FFMPEG_TAG_9_0=n9.0.2
+FFMPEG_TAG_7_1=n7.1.5
+FFMPEG_TAG_8_1=n8.1.3

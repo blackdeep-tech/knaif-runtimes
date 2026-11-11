@@ -1,0 +1,4 @@
+# The builds run under bash (Linux, or WSL reading a Windows checkout), which reads a CRLF line's
+# `\r` as part of a value: a commit hash or a stage name would then match nothing. Everything here
+# stays LF.
+* text=auto eol=lf

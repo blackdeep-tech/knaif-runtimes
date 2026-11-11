@@ -1,0 +1,23 @@
+# The build stages a media pack keeps; every other stage of the build tooling is switched off.
+# Toolchain and base:
+mingw
+mingw-std-threads
+xorg-macros
+base
+zlib
+libiconv
+# Encoders the media recipes name (contracts/runtimes/media.capabilities.yaml, derived from them):
+x264
+x265
+libmp3lame
+libopus
+libvpx
+svtav1
+libogg
+libvorbis
+# ffmpeg's default video codec for .ogg outputs, which the engine leaves to ffmpeg:
+libtheora
+# Still images in WebP (an image extension the engine accepts):
+libwebp
+# AV1 input: ffmpeg has no software AV1 decoder of its own.
+dav1d
