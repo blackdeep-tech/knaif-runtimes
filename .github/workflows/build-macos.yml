@@ -1,0 +1,53 @@
+# Build the media pack for macOS (Apple silicon) on a GitHub-hosted runner, by hand only.
+# It runs ffmpeg/build-macos.sh and uploads the unsigned pack, its source set and its capability
+# lists as workflow artifacts. Signing and notarisation belong to knaif's release process.
+name: build-macos
+
+on:
+  workflow_dispatch:
+    inputs:
+      line:
+        description: "ffmpeg line (a FFMPEG_TAG_<line> in ffmpeg/PINS)"
+        required: true
+        default: "9.0"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build tools (build time only; nothing of them is linked)
+        run: brew install autoconf automake libtool pkgconf cmake meson ninja nasm subversion xz
+
+      - name: Build
+        env:
+          LINE: ${{ inputs.line }}
+        run: bash ffmpeg/build-macos.sh "$LINE" "$RUNNER_TEMP/media-pack-$LINE"
+
+      - name: Capability lists
+        env:
+          LINE: ${{ inputs.line }}
+        run: |
+          pack="$RUNNER_TEMP/media-pack-$LINE"
+          mkdir -p "$pack/capabilities"
+          for k in encoders decoders muxers demuxers filters protocols; do
+            "$pack/bin/ffmpeg" -hide_banner "-$k" > "$pack/capabilities/$k.txt" 2>&1
+          done
+          "$pack/bin/ffmpeg" -hide_banner -version > "$pack/capabilities/version.txt"
+          otool -L "$pack/bin/ffmpeg" "$pack/bin/ffprobe" > "$pack/capabilities/otool.txt"
+          file "$pack/bin/ffmpeg" "$pack/bin/ffprobe" > "$pack/capabilities/file.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: media-pack-${{ inputs.line }}-macos-arm64
+          path: ${{ runner.temp }}/media-pack-${{ inputs.line }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: media-pack-${{ inputs.line }}-macos-arm64-sources
+          path: ${{ runner.temp }}/media-pack-${{ inputs.line }}-sources
