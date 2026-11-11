@@ -96,11 +96,10 @@ fetch() {  # name -> $SRC/<name>, at its pinned commit
     if [ "$kind" = svn ]; then
         svn checkout --quiet "$repo@$ref" "$dir"
     else
-        git init --quiet "$dir"
-        git -C "$dir" remote add origin "$repo"
-        if ! git -C "$dir" fetch --quiet --depth 1 origin "$ref" 2>/dev/null; then
-            git -C "$dir" fetch --quiet origin   # a server that will not serve a commit by hash
-        fi
+        # The whole history and its tags, without file contents (as BtbN fetches x265): x265
+        # writes x265.pc only when `git describe` finds its version, and x264 numbers its build
+        # from the history. A single-commit fetch has neither.
+        git clone --quiet --filter=blob:none "$repo" "$dir"
         git -C "$dir" checkout --quiet "$ref"
     fi
     echo "$1 $repo $ref" >> "$WORK/pins.txt"
