@@ -114,6 +114,16 @@ autotools() {  # dir, configure args...
         && make -j"$JOBS" && make install)
 }
 
+# The Xiph libraries' configure scripts pass `-force_cpusubtype_ALL` to the linker on Darwin, and
+# Apple's current linker refuses it ("ld: unknown options"); Homebrew's formulae strip it too.
+no_cpusubtype_all() {  # dir
+    local f
+    for f in "$1"/configure.ac "$1"/configure.in "$1"/configure; do
+        [ -f "$f" ] && sed -i '' 's/-force_cpusubtype_ALL//g' "$f"
+    done
+    return 0
+}
+
 build_lib() {  # name
     local d=$SRC/$1
     case $1 in
@@ -161,8 +171,10 @@ build_lib() {  # name
         libogg)
             autotools "$d" --with-pic ;;
         libvorbis)
+            no_cpusubtype_all "$d"
             autotools "$d" --disable-oggtest ;;
         libtheora)
+            no_cpusubtype_all "$d"
             autotools "$d" --with-pic --disable-examples --disable-oggtest --disable-vorbistest \
                 --disable-spec --disable-doc ;;
         libwebp)
