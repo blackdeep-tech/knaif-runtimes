@@ -124,6 +124,18 @@ no_cpusubtype_all() {  # dir
     return 0
 }
 
+# x265 is C++, so a static link needs the C++ runtime (libc++ on macOS; BtbN adds -lstdc++ on
+# Linux). pkg-config refuses a second Libs.private field, so the flag joins the existing one.
+cxx_in_pc() {  # x265.pc
+    if grep -q '^Libs.private:' "$1"; then
+        grep -q -- '-lc++' "$1" || sed -i '' 's/^Libs.private:\(.*\)$/Libs.private:\1 -lc++/' "$1"
+    else
+        echo "Libs.private: -lc++" >> "$1"
+    fi
+    echo "x265.pc:"
+    sed 's/^/  /' "$1"
+}
+
 build_lib() {  # name
     local d=$SRC/$1
     case $1 in
@@ -151,7 +163,7 @@ build_lib() {  # name
                 mv 8bit/libx265.a 8bit/libx265_main.a &&
                 libtool -static -o 8bit/libx265.a 8bit/libx265_main.a 8bit/libx265_main10.a 8bit/libx265_main12.a &&
                 cmake --install 8bit &&
-                echo "Libs.private: -lc++" >> "$PREFIX/lib/pkgconfig/x265.pc") ;;
+                cxx_in_pc "$PREFIX/lib/pkgconfig/x265.pc") ;;
         libmp3lame)
             (cd "$d" && autoreconf -fi && CFLAGS="$CFLAGS -DNDEBUG" ./configure --prefix="$PREFIX" \
                 --disable-shared --enable-static --disable-cpml --disable-frontend --disable-decoder \
@@ -207,7 +219,8 @@ echo "ffmpeg $FFMPEG_REPO $FFMPEG_TAG $(git -C "$SRC/ffmpeg" rev-parse HEAD)" >>
     --enable-libwebp --enable-libdav1d \
     --extra-cflags="-I$PREFIX/include $CFLAGS" --extra-ldflags="-L$PREFIX/lib $LDFLAGS" \
     --extra-libs="-liconv" --extra-version="$(date -u +%Y%m%d)" \
-    && make -j"$JOBS" && make install)
+    || { echo "== ffmpeg configure failed; the end of ffbuild/config.log:"; tail -60 ffbuild/config.log; exit 1; })
+(cd "$SRC/ffmpeg" && make -j"$JOBS" && make install)
 
 # The pack: bin/, the licence, BUILD.txt; and nothing linked but the system's own libraries.
 mkdir -p "$OUT/bin"
