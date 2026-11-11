@@ -53,7 +53,7 @@ source set beside the pack (`<out-dir>-sources/`), since the Mac has no download
 ## Sources
 
 ```bash
-bash ffmpeg/sources.sh <line> <out-dir>   # after build.sh, on the same machine
+bash ffmpeg/sources.sh <line> <out-dir> [target]   # after build.sh, on the same machine
 ```
 
 The pack is GPL, so each published pack goes out with its complete corresponding source:

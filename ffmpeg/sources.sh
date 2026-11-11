@@ -2,9 +2,11 @@
 # Gather the complete corresponding source of a media pack built by build.sh, for the GPL: ffmpeg
 # at the pinned tag, the source of every library linked into it, and the scripts that built it.
 #
-#   bash ffmpeg/sources.sh <line> <out-dir>
+#   bash ffmpeg/sources.sh <line> <out-dir> [target]
 #     line     9.0 | 8.1 | 7.1   (as given to build.sh)
 #     out-dir  where the source set lands (one .tar.xz per part, plus SOURCES.txt with sha256s)
+#     target   win64 (default) | linux64, as given to build.sh: a library the target does not
+#              build (the mingw runtime on Linux) is not part of its source set
 #
 # Runs where build.sh ran (Linux, or WSL on Windows), after it: the libraries' sources are taken
 # from the build tooling's own download cache, so they are the very bytes that were compiled. Each
@@ -13,9 +15,11 @@
 # archive is missing, so a source set never silently differs from the build. No docker needed.
 set -euo pipefail
 
-LINE=${1:?usage: sources.sh <line> <out-dir>}
-OUT_ARG=${2:?usage: sources.sh <line> <out-dir>}
+LINE=${1:?usage: sources.sh <line> <out-dir> [target]}
+OUT_ARG=${2:?usage: sources.sh <line> <out-dir> [target]}
+TARGET=${3:-win64}
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+[ -f "$HERE/variants/$TARGET-knaif.sh" ] || { echo "no variant for $TARGET" >&2; exit 1; }
 mkdir -p "$OUT_ARG"
 OUT=$(cd "$OUT_ARG" && pwd)
 
@@ -44,11 +48,30 @@ stage_dl() {  # stage-script
     )
 }
 
+# Whether a stage builds for $TARGET and the line: its own `ffbuild_enabled`, as the tooling asks
+# it. Some stages ask which ffmpeg they build for (`ffbuild_ffver`, from the line's add-in), so
+# that one function is taken from the tooling's util/vars.sh, which cannot be sourced whole.
+FFVER_FN=$(sed -n '/^ffbuild_ffver() {/,/^}/p' "$WORK/util/vars.sh")
+[ -n "$FFVER_FN" ] || { echo "no ffbuild_ffver in $WORK/util/vars.sh" >&2; exit 1; }
+stage_enabled() {  # stage-script
+    (
+        set +eu
+        TARGET=$TARGET VARIANT=knaif ADDINS_STR=$LINE
+        eval "$FFVER_FN"
+        # shellcheck source=/dev/null
+        source "$WORK/util/dl_functions.sh"
+        # shellcheck source=/dev/null
+        source "$1"
+        ffbuild_enabled
+    )
+}
+
 for s in "${KEEP[@]}"; do
     found=0
     for f in "$WORK"/scripts.d/??-"$s".sh "$WORK"/scripts.d/??-"$s"/*.sh; do
         [ -f "$f" ] || continue
         found=1
+        stage_enabled "$f" || continue   # not built for this target (mingw on Linux)
         stg=$(stage_dl "$f")
         [ -n "$stg" ] || continue   # a stage with nothing to download (e.g. base)
         name=$(basename "$f" .sh)
@@ -78,7 +101,7 @@ manifest+=("knaif-runtimes-ffmpeg.tar.xz|the knaif build files: build.sh, PINS, 
 
 {
     echo "media pack source set"
-    echo "ffmpeg:        $FFMPEG_TAG (line $LINE)"
+    echo "ffmpeg:        $FFMPEG_TAG (line $LINE), target $TARGET"
     echo "build tooling: $BTBN_REPO @ $BTBN_COMMIT"
     echo "gathered:      $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo
