@@ -3,13 +3,14 @@
 #
 #   bash ffmpeg/build.sh <line> <out-dir> [target]
 #     line     9.0 | 8.1 | 7.1      (the ffmpeg release line; the exact tag is in PINS)
-#     out-dir  where the pack lands (bin/, doc/, LICENSE.txt, BUILD.txt)
+#     out-dir  where the pack lands (bin/, doc/, LICENSE.txt, NOTICES.txt, BUILD.txt)
 #     target   win64 (default) | linux64
 #
 # Runs on Linux with docker (on Windows: inside WSL with Docker Desktop's WSL integration on).
 # It uses BtbN's FFmpeg-Builds at the commit in PINS: that tooling cross-builds every library from
 # the source commit its stage script pins, in docker. This script switches off every stage not in
 # allowlist.txt, adds the knaif variant (variants/), and builds ffmpeg at the pinned release tag.
+# Last, pack-notices.sh writes NOTICES.txt: every library's licence texts, from the compiled sources.
 # The tooling checkout and its download cache live in $KNAIF_RUNTIMES_WORK (default
 # ~/.cache/knaif-runtimes), never in the repository.
 set -euo pipefail
@@ -84,4 +85,5 @@ FFMPEG_REPO_OVERRIDE="$FFMPEG_REPO" GIT_BRANCH_OVERRIDE="$FFMPEG_TAG" FFBUILD_OU
         done
     done
 } > "$OUT/BUILD.txt"
+bash "$HERE/pack-notices.sh" "$LINE" "$OUT" "$TARGET"
 echo "pack: $OUT"

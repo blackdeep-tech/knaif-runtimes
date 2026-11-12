@@ -5,6 +5,8 @@
 #   bash ffmpeg/build-macos.sh <line> <out-dir>      # on the Mac; arch = the Mac's (arm64)
 #   bash ffmpeg/build-macos.sh --pins                 # print what would be built, anywhere
 #
+# The pack: bin/, LICENSE.txt, NOTICES.txt (every library's licence texts, notices.sh), BUILD.txt.
+#
 # Same inputs as the other platforms: every library is taken at the commit (or revision) that its
 # stage script in BtbN's FFmpeg-Builds pins, at the BtbN commit in PINS, and ffmpeg at the release
 # tag PINS names for the line, with the same configuration as variants/*-knaif.sh. Only the build
@@ -221,10 +223,16 @@ echo "ffmpeg $FFMPEG_REPO $FFMPEG_TAG $(git -C "$SRC/ffmpeg" rev-parse HEAD)" >>
     || { echo "== ffmpeg configure failed; the end of ffbuild/config.log:"; tail -60 ffbuild/config.log; exit 1; })
 (cd "$SRC/ffmpeg" && make -j"$JOBS" && make install)
 
-# The pack: bin/, the licence, BUILD.txt; and nothing linked but the system's own libraries.
+# The pack: bin/, the licence, the third-party notices, BUILD.txt; and nothing linked but the
+# system's own libraries.
 mkdir -p "$OUT/bin"
 cp "$PREFIX/bin/ffmpeg" "$PREFIX/bin/ffprobe" "$OUT/bin/"
 cp "$SRC/ffmpeg/COPYING.GPLv2" "$OUT/LICENSE.txt"
+# shellcheck source=notices.sh
+source "$HERE/notices.sh"
+notice_sources=("ffmpeg=$SRC/ffmpeg")
+for s in "${LIBS[@]}"; do notice_sources+=("$s=$SRC/$s"); done
+write_notices "$OUT/NOTICES.txt" "media pack, ffmpeg $FFMPEG_TAG, macos-$ARCH" "${notice_sources[@]}"
 for b in "$OUT/bin/ffmpeg" "$OUT/bin/ffprobe"; do
     bad=$(otool -L "$b" | tail -n +2 | awk '{print $1}' | grep -vE '^(/usr/lib/|/System/Library/)' || true)
     [ -z "$bad" ] || { echo "$b links a non-system library: $bad" >&2; exit 1; }

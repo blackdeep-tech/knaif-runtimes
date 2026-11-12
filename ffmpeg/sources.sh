@@ -28,60 +28,26 @@ source <(grep -E '^[A-Z0-9_]+=' "$HERE/PINS")
 TAG_VAR="FFMPEG_TAG_${LINE//./_}"
 FFMPEG_TAG=${!TAG_VAR:?no ffmpeg tag pinned for line $LINE in PINS}
 WORK=${KNAIF_RUNTIMES_WORK:-$HOME/.cache/knaif-runtimes}/btbn-$BTBN_COMMIT
-CACHE=$WORK/.cache/downloads
-[ -d "$CACHE" ] || { echo "no build cache at $CACHE: run build.sh first" >&2; exit 1; }
+[ -d "$WORK/.cache/downloads" ] || { echo "no build cache at $WORK/.cache/downloads: run build.sh first" >&2; exit 1; }
 [ "$(git -C "$WORK" rev-parse HEAD)" = "$BTBN_COMMIT" ] || { echo "$WORK is not at $BTBN_COMMIT" >&2; exit 1; }
+# shellcheck source=btbn.sh
+source "$HERE/btbn.sh"
 
 mapfile -t KEEP < <(grep -v -E '^\s*(#|$)' "$HERE/allowlist.txt")
 mkdir -p "$OUT/libraries"
 manifest=()
 
-# The download command a stage pins, exactly as the tooling's download.sh computes it.
-stage_dl() {  # stage-script
-    (
-        set +eu
-        # shellcheck source=/dev/null
-        source "$WORK/util/dl_functions.sh"
-        # shellcheck source=/dev/null
-        source "$1"
-        ffbuild_dockerdl
-    )
-}
-
-# Whether a stage builds for $TARGET and the line: its own `ffbuild_enabled`, as the tooling asks
-# it. Some stages ask which ffmpeg they build for (`ffbuild_ffver`, from the line's add-in), so
-# that one function is taken from the tooling's util/vars.sh, which cannot be sourced whole.
-FFVER_FN=$(sed -n '/^ffbuild_ffver() {/,/^}/p' "$WORK/util/vars.sh")
-[ -n "$FFVER_FN" ] || { echo "no ffbuild_ffver in $WORK/util/vars.sh" >&2; exit 1; }
-stage_enabled() {  # stage-script
-    (
-        set +eu
-        TARGET=$TARGET VARIANT=knaif ADDINS_STR=$LINE
-        eval "$FFVER_FN"
-        # shellcheck source=/dev/null
-        source "$WORK/util/dl_functions.sh"
-        # shellcheck source=/dev/null
-        source "$1"
-        ffbuild_enabled
-    )
-}
-
 for s in "${KEEP[@]}"; do
-    found=0
-    for f in "$WORK"/scripts.d/??-"$s".sh "$WORK"/scripts.d/??-"$s"/*.sh; do
-        [ -f "$f" ] || continue
-        found=1
-        stage_enabled "$f" || continue   # not built for this target (mingw on Linux)
-        stg=$(stage_dl "$f")
-        [ -n "$stg" ] || continue   # a stage with nothing to download (e.g. base)
+    mapfile -t scripts < <(btbn_stage_scripts "$s")
+    [ "${#scripts[@]}" -gt 0 ] || { echo "allowlist names $s, which has no stage at $BTBN_COMMIT" >&2; exit 1; }
+    for f in "${scripts[@]}"; do
+        btbn_stage_enabled "$f" || continue   # not built for this target (mingw on Linux)
+        archive=$(btbn_stage_archive "$f")
+        [ -n "$archive" ] || continue   # a stage with nothing to download (e.g. base)
         name=$(basename "$f" .sh)
-        hash=$(sha256sum <<<"$stg" | cut -d' ' -f1)
-        archive="$CACHE/${name}_${hash}.tar.xz"
-        [ -f "$archive" ] || { echo "no cached source for $name ($archive): rebuild" >&2; exit 1; }
         cp "$archive" "$OUT/libraries/$name.tar.xz"
-        manifest+=("libraries/$name.tar.xz|$stg")
+        manifest+=("libraries/$name.tar.xz|$(btbn_stage_dl "$f")")
     done
-    [ "$found" = 1 ] || { echo "allowlist names $s, which has no stage at $BTBN_COMMIT" >&2; exit 1; }
 done
 
 # ffmpeg itself, at the pinned tag.
