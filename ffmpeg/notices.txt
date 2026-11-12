@@ -1,0 +1,35 @@
+# The media pack's third-party notices: for each part of the pack, its licence and the licence
+# files in its source tree that NOTICES.txt reproduces in full. notices.sh reads this file; a build
+# stops when a stage in allowlist.txt has no line here, or when a file named here is missing from
+# the source that was compiled.
+#
+#   stage | licence | licence files, relative to the stage's source root ("-": nothing of the
+#                     stage is in the pack, e.g. build-time tools)
+#
+# Name every licence or notice file the library's own top level carries, plus those of bundled
+# third-party code that is compiled into the library (not code used only by its own tools).
+# Compiler runtimes (libgcc, libstdc++) are under the GCC Runtime Library Exception, which asks
+# for no notice; the macOS and Linux packs link the system's own C library dynamically.
+
+ffmpeg            | GPL-2.0-or-later (LGPL-2.1-or-later parts)  | LICENSE.md COPYING.GPLv2 COPYING.LGPLv2.1
+
+# Toolchain and base (Windows only, except zlib and libiconv)
+mingw             | mingw-w64 runtime licence, MIT (winpthreads), public domain | COPYING.MinGW-w64-runtime/COPYING.MinGW-w64-runtime.txt mingw-w64-libraries/winpthreads/COPYING DISCLAIMER.PD
+mingw-std-threads | BSD-2-Clause                 | LICENSE
+xorg-macros       | -                            | -
+base              | -                            | -
+zlib              | Zlib                         | LICENSE
+libiconv          | LGPL-2.1-or-later            | COPYING.LIB
+
+# Encoders and formats
+x264              | GPL-2.0-or-later             | COPYING
+x265              | GPL-2.0-or-later             | COPYING source/dynamicHDR10/LICENSE.txt
+libmp3lame        | LGPL-2.0-or-later            | COPYING LICENSE
+libopus           | BSD-3-Clause                 | COPYING
+libvpx            | BSD-3-Clause, ISC (x86inc)   | LICENSE PATENTS third_party/x86inc/LICENSE
+svtav1            | BSD-3-Clause-Clear, BSD-2-Clause, MIT, BSD-3-Clause; AOM patent licence | LICENSE.md LICENSE-BSD2.md PATENTS.md third_party/safestringlib/LICENSE third_party/fastfeat/LICENSE
+libogg            | BSD-3-Clause                 | COPYING
+libvorbis         | BSD-3-Clause                 | COPYING
+libtheora         | BSD-3-Clause                 | COPYING LICENSE
+libwebp           | BSD-3-Clause                 | COPYING PATENTS
+dav1d             | BSD-2-Clause; AOM patent licence | COPYING doc/PATENTS

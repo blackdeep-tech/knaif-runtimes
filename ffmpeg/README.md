@@ -15,8 +15,12 @@ nothing, including Windows with Smart App Control on, where an unsigned ffmpeg i
 - **Local files only, the same result on every machine.** No network protocols (only `file` and
   `pipe`), no capture devices, no hardware acceleration.
 - **Licence:** the build enables GPL components (x264, x265), so the pack is distributed under the
-  GPL, version 2 or later, with its source. knaif runs it as a separate program and is not a
-  combined work with it.
+  GPL, version 2 or later (`LICENSE.txt`), with its source. knaif runs it as a separate program
+  and is not a combined work with it.
+- **Third-party notices:** the libraries inside keep their own licences (LGPL, BSD, MIT, ISC,
+  zlib, and the AOM patent licence), and most ask that a binary carry their notices. Every pack
+  carries `NOTICES.txt`: an index of its components and their licences, then each licence text in
+  full, read from the very sources that were compiled.
 
 ## Building
 
@@ -28,7 +32,8 @@ Linux with docker; on Windows, inside WSL with Docker Desktop's WSL integration 
 tooling is BtbN's FFmpeg-Builds at the commit in `PINS`: it cross-builds every library from the
 source commit its stage script pins, in docker. `build.sh` switches off every stage not on the
 allowlist, adds the variant in `variants/`, and builds ffmpeg at the release tag `PINS` names for
-the line. The pack lands in `<out-dir>` with `BUILD.txt` (every pinned version) and the licence.
+the line. The pack lands in `<out-dir>` with `BUILD.txt` (every pinned version), the licence and
+`NOTICES.txt`.
 The tooling's checkout and download cache live in `$KNAIF_RUNTIMES_WORK` (default
 `~/.cache/knaif-runtimes`), never in the repository.
 
@@ -49,6 +54,21 @@ the system's own libraries. The minimum macOS is 12 (`MACOSX_DEPLOYMENT_TARGET`)
 source set beside the pack (`<out-dir>-sources/`), since the Mac has no download cache for
 `sources.sh` to read. If x265's or libvpx's assembly does not build on a given Mac,
 `X265_CMAKE_EXTRA=-DENABLE_ASSEMBLY=OFF` and `LIBVPX_TARGET=<target>` are the escape hatches.
+
+## Notices
+
+`notices.txt` names, for every stage in `allowlist.txt` and for ffmpeg itself, its licence and the
+licence files in its source tree (`-` for a stage nothing of which is in the pack, such as build
+tools). `notices.sh` writes `NOTICES.txt` from it; `build.sh` runs it last through
+`pack-notices.sh`, which reads the libraries' files from the build tooling's download cache, and
+`build-macos.sh` from its own source trees. The build stops, and writes no notices, when a stage
+the allowlist keeps has no line in `notices.txt`, or a file a line names is not in the source: a
+library added to the allowlist needs its line first.
+
+```bash
+bash ffmpeg/tests/notices_test.sh                          # no build, docker or network
+bash ffmpeg/pack-notices.sh <line> <pack-dir> [target]      # re-write a pack's notices (after build.sh)
+```
 
 ## Sources
 
